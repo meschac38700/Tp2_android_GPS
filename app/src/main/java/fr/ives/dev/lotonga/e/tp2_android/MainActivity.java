@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     second.setLongitude(this.secondPositionNumb[1]);
                     float distance_parcourue = first.distanceTo(second);
                     Toast.makeText(this, "Distance parcourue = "+distance_parcourue , Toast.LENGTH_SHORT).show();
-                    distance.setText(String.valueOf(distance_parcourue)+" km");
+                    distance.setText(String.valueOf(distance_parcourue/1000)+" mêtres");
                 }
                 else
                 {
