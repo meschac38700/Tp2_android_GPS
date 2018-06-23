@@ -11,4 +11,12 @@
         android:layout_centerVertical="true"
         android:text="stepssincereboot"
         android:id="@+id/stepssincereboot"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:text="startGPS"
+        android:id="@+id/gpsStart"
+        android:layout_marginTop="30dp"/>
 </RelativeLayout>

@@ -25,7 +25,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,7 +32,6 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private static final long RAFRAICHISSEMENT = 2L;
     private LocationManager locationMangaer = null;
     private LocationListener locationListener = null;
     private TextView distance;
@@ -44,14 +42,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button stepCounter = null;
     private EditText editLocation = null;
     private ProgressBar pb = null;
-    private static final String TAG = "Debug";
+    private static final String TAG = "debug_custom";
     private Boolean flag = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        current_location= new MyLocationListener();
+        current_location= new MyLocationListener(null);
         //location_text = (TextView)findViewById(R.id.location_text);
         //if you want to lock screen for always Portrait mode
         setRequestedOrientation(ActivityInfo
@@ -72,9 +70,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         secondPos.setOnClickListener(this);
         locationMangaer = (LocationManager)
                 getSystemService(Context.LOCATION_SERVICE);
-        this.distance = (TextView)findViewById(R.id.distance);
-        this.firstPositionNumb = new double[2];
-        this.secondPositionNumb = new double[2];
+        this.distance = (TextView)findViewById(R.id.showDistance);
+        this.firstPositionNumb = new double[]{0.0,0.0};
+        this.secondPositionNumb = new double[]{0.0,0.0};
+        Bundle extras = getIntent().getExtras();
+        this.displayCoordinate( extras );
+
 
     }
 
@@ -114,19 +115,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
           }
       }
   */
-
-    private void displayCoordinate()
+    private void displayCoordinate(Bundle extras )
     {
         flag = displayGpsStatus();
-        if (flag) {
-
+        if (flag)
+        {
             Log.v(TAG, "onClick");
 
             editLocation.setText("Please!! move your device to" +
                     " see the changes in coordinates." + "\nWait..");
 
             pb.setVisibility(View.VISIBLE);
-            locationListener = new MyLocationListener();
+            locationListener = new MyLocationListener(extras);
 
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
@@ -136,14 +136,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 //                                          int[] grantResults)
                 // to handle the case where the user grants the permission. See the documentation
                 // for ActivityCompat#requestPermissions for more details.
+
                 return;
             }
             locationMangaer.requestLocationUpdates(LocationManager
-                    .GPS_PROVIDER, 1000, 10, locationListener);
-
-        } else {
+                    .GPS_PROVIDER, 2000, 10, locationListener);
+        }
+        else
+            {
+            final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+            if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(intent);
+            }
             alertbox("Gps Status!!", "Your GPS is: OFF");
         }
+
     }
     @Override
     public void onClick(View v) {
@@ -151,12 +159,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch(v.getId())
         {
             case R.id.stepCounter:
-                Toast.makeText(this, "StepCounter", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(this, StepCounter.class);
                 startActivity(intent);
                 break;
             case R.id.btnLocation:
-                this.displayCoordinate();
+                this.displayCoordinate(null);
                 break;
             case R.id.firstPosition:
                 if(this.secondPositionNumb[0] != 0.0 && this.secondPositionNumb[1] != 0.0)
@@ -164,6 +171,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     this.firstPositionNumb[0] = this.secondPositionNumb[0];
                     this.firstPositionNumb[1] = this.secondPositionNumb[1];
                     Toast.makeText(this, " Ok First Position", Toast.LENGTH_SHORT).show();
+
+                    Intent intent2 = new Intent(this, StepCounter.class);
+                    intent2.putExtra("firstPosition", this.firstPositionNumb);
+                    startActivity(intent2);
+                }
+                else
+                {
+                    Toast.makeText(this, "Veuillez cliquer de nouveau !", Toast.LENGTH_SHORT).show();
                 }
                 break;
             case R.id.secondPosition:
@@ -177,8 +192,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     second.setLatitude(this.secondPositionNumb[0]);
                     second.setLongitude(this.secondPositionNumb[1]);
                     float distance_parcourue = first.distanceTo(second);
-                    Toast.makeText(this, "Distance parcourue = "+distance_parcourue , Toast.LENGTH_SHORT).show();
-                    distance.setText(String.valueOf(distance_parcourue/1000)+" mêtres");
+                    distance.setText(String.valueOf(((int) distance_parcourue))+" mêtres");
                 }
                 else
                 {
@@ -186,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 break;
         }
-        this.displayCoordinate();
+
         /*long start = System.currentTimeMillis();
         long end = 0L;
         while(true)
@@ -247,22 +261,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /*----------Listener class to get coordinates ------------- */
     public class MyLocationListener implements LocationListener {
 
-        public double latitude, longitude;
+        Bundle extras = null;
+        public MyLocationListener( Bundle p_extras )
+        {
+            this.extras = p_extras;
+        }
         @Override
         public void onLocationChanged(Location loc) {
 
             editLocation.setText("");
             pb.setVisibility(View.INVISIBLE);
 
-            Toast.makeText(getBaseContext(),"Location changed : Lat: " +
-                            loc.getLatitude()+ " Lng: " + loc.getLongitude(),
-                    Toast.LENGTH_SHORT).show();
             String longitude = "Longitude: " +loc.getLongitude();
             Log.v(TAG, longitude);
             String latitude = "Latitude: " +loc.getLatitude();
             Log.v(TAG, latitude);
-            this.latitude = loc.getLatitude();
-            this.longitude = loc.getLongitude();
             /*----------to get City-Name from coordinates ------------- */
             String cityName=null;
             Geocoder gcd = new Geocoder(getBaseContext(),
@@ -283,6 +296,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             secondPositionNumb[0] = loc.getLatitude();
             secondPositionNumb[1] = loc.getLongitude();
+
+            if (this.extras != null)
+            {
+                firstPositionNumb = this.extras.getDoubleArray("firstPosition");
+                if(secondPositionNumb[0] != 0.0)
+                {
+
+                    float distance_step = getIntent().getFloatExtra("distanceStep",0);
+                    int stepNumber = getIntent().getIntExtra("stepNumber",0);
+
+                    Location first = new Location("");
+                    Location second = new Location("");
+                    first.setLatitude(firstPositionNumb[0]);
+                    first.setLongitude(firstPositionNumb[1]);
+                    second.setLatitude(secondPositionNumb[0]);
+                    second.setLongitude(secondPositionNumb[1]);
+                    int distance_gps = (int) first.distanceTo(second);
+                    String ch = "Distance GPS = "+ distance_gps + "\nDistance PAS = "+ distance_step+ "\nNumbre PAS = "+ stepNumber;
+                    distance.setText(ch);
+                }
+            }
         }
 
         @Override
@@ -299,16 +333,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onStatusChanged(String provider,
                                     int status, Bundle extras) {
             // TODO Auto-generated method stub
-        }
-
-        public double getLatitude()
-        {
-            return this.latitude;
-        }
-
-        public double getLongitude()
-        {
-            return this.longitude;
         }
     }
 }

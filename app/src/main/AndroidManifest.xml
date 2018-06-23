@@ -19,4 +19,5 @@
         <activity android:name=".StepCounter"></activity>
     </application>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" />
 </manifest>
